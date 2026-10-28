@@ -1,3 +1,7 @@
+#include <iostream>
+#include <string>
+#include <vector>
+#include <cmath>
 #include "visualizer.h"
 #include "importer.h"
 #include "model.h"
@@ -6,7 +10,9 @@
 #include "scaler.h"
 #include "optimizer.h"
 
-bool readNumber(string prompt, double& out) {
+using namespace std;
+
+bool readNumber(const string& prompt, double& out) {
     while (true) {
         cout << prompt;
         string s;
@@ -26,6 +32,32 @@ int main(int argc, char* argv[]) {
     string file = "houses.csv";
     if (argc > 1) file = argv[1];
 
+    cout << "Select loss (1: MSE, 2: MAE) [1]: ";
+    string s;
+    getline(cin, s);
+    bool isMAE = (s == "2");
+    ILossFunction* loss = isMAE ? static_cast<ILossFunction*>(new MAELoss()) : new MSELoss();
+    string lossLabel = isMAE ? "MAE" : "MSE";
+
+    cout << "Select optimizer (1: SGD, 2: Batch) [1]: ";
+    getline(cin, s);
+    bool isBatch = (s == "2");
+    string optLabel = isBatch ? "Batch" : "SGD";
+
+    double lr = 0.001;
+    cout << "Enter learning rate [0.001]: ";
+    getline(cin, s);
+    if (!s.empty()) {
+        try {
+            double val = stod(s);
+            if (val > 0) lr = val;
+        } catch (...) {
+        }
+    }
+
+    Optimizer* opt = isBatch ? static_cast<Optimizer*>(new BatchGradientDescentOptimizer(lr))
+                             : new SGDOptimizer(lr);
+
     DataSet data;
     Importer imp;
     if (!imp.loadCSV(file, data)) return 1;
@@ -42,15 +74,15 @@ int main(int argc, char* argv[]) {
     if (!scaleDataSet(scaler, train, trainScaled)) return 1;
     if (!scaleDataSet(scaler, test, testScaled)) return 1;
 
-    LinearModel model(data.numCols() - 1);
-    ILossFunction* loss = new MSELoss();
-    Optimizer* opt = new SGDOptimizer(0.0001);
-
     int epochs = 500;
+    LinearModel model(data.numCols() - 1);
+    Visualizer viz(epochs, lossLabel);
+
+    cout << "training with " << lossLabel << " + " << optLabel
+         << " (lr=" << lr << ", epochs=" << epochs << ")\n";
+
     double l = 0;
     bool diverged = false;
-    Visualizer viz(epochs);
-
     for (int e = 1; e <= epochs; e++) {
         opt->update(model, trainScaled, *loss);
         l = averageLoss(model, trainScaled, *loss);
@@ -60,7 +92,7 @@ int main(int argc, char* argv[]) {
             break;
         }
         viz.update(model, trainScaled, testScaled, e, l);
-        if (e % 100 == 0) cout << "epoch " << e << " loss " << l << endl;
+        if (e % 100 == 0 || e == epochs) cout << "epoch " << e << " loss " << l << endl;
     }
 
     if (diverged) {
@@ -77,10 +109,15 @@ int main(int argc, char* argv[]) {
     }
     cout << "\nbias: " << model.getBias() << "\n";
 
-    cout << "test loss (MSE): " << averageLoss(model, testScaled, *loss) << endl;
+    double testLoss = averageLoss(model, testScaled, *loss);
+    cout << "test loss (" << lossLabel << "): " << testLoss;
+    if (!isMAE) {
+        cout << " (RMSE: $" << static_cast<long long>(sqrt(testLoss)) << ")";
+    }
+    cout << endl;
     cout << "test R2: " << r2Score(model, testScaled) << endl;
 
-    cout << "enter a new house (q to quit)" << endl;
+    cout << "enter a new input (q to quit)" << endl;
     while (true) {
         vector<double> x;
         bool quit = false;

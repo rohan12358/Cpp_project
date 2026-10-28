@@ -42,12 +42,20 @@ cd build
 ./main
 ```
 
-The first CMake configure downloads Matplot++ and requires Git and an internet
-connection. The build copies `houses.csv` into the build directory. The program
-saves PNG snapshots at one-third, two-thirds, and the final epoch in the
-project-level `plots/` directory, then opens only the final plot. Close the
-plot window to see the model metrics, then enter feature values at the prompts.
-Type `q` to quit.
+## Running the Program
 
-The three PNG files currently in `plots/` are included as example training
-snapshots. Running the program again replaces them with new snapshots.
+When you run `.\main.exe`, it asks:
+
+```text
+Select loss (1: MSE, 2: MAE) [1]: 
+Select optimizer (1: SGD, 2: Batch) [1]: 
+Enter learning rate [0.001]: 
+```
+
+- Press <kbd>Enter</kbd> at each prompt to accept the defaults (`MSE`, `SGD`, `0.001`).
+- Or type `2` to pick `MAE` / `Batch`, or enter a custom number for learning rate.
+
+---
+
+The first CMake configure downloads Matplot++ and requires Git and an internet
+connection. The build copies `houses.csv` into the build directory. When training finishes, press <kbd>Enter</kbd> in your terminal to view the metrics and enter feature values at the prompts. Type `q` to quit.

@@ -17,6 +17,7 @@ class Visualizer {
     int firstSnapshotEpoch;
     int secondSnapshotEpoch;
     bool opened;
+    string lossName;
     vector<double> epochs;
     vector<double> losses;
 
@@ -25,7 +26,7 @@ class Visualizer {
         opened = false;
     }
 public:
-    Visualizer(int e) {
+    Visualizer(int e, string lName = "MSE") : lossName(lName) {
         if (e < 1) e = 1;
         totalEpochs = e;
         firstSnapshotEpoch = max(1, (totalEpochs + 1) / 3);
@@ -43,7 +44,7 @@ public:
 
             lossLine = lossAxes->plot(vector<double>{}, vector<double>{}, "b");
             lossAxes->xlabel("epoch");
-            lossAxes->ylabel("log10 of training MSE");
+            lossAxes->ylabel("log10 of training " + lossName);
         } catch (...) {
             fail();
         }
@@ -95,7 +96,7 @@ public:
 
         try {
             lossLine->x_data(epochs).y_data(losses);
-            lossAxes->title("epoch " + to_string(epoch) + " / " + to_string(totalEpochs) + "   loss " + to_string((long long)loss));
+            lossAxes->title("epoch " + to_string(epoch) + " / " + to_string(totalEpochs) + "   " + lossName + " loss " + to_string((long long)loss));
             lossAxes->xlim({0.0, (double)totalEpochs});
 
             if (!first) {
